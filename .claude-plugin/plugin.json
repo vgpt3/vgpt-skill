@@ -3,7 +3,7 @@
   "description": "Disciplined use of the VGPT MCP server for Viewpoint Vista construction ERP queries. Handles connector bootstrap, evidence-tiered citations, and Excel-friendly output formatting. Especially valuable when running through the Claude for Excel add-in.",
   "version": "0.3.0",
   "author": {
-    "name": "Aaron Yu",
+    "name": "VGPT3",
     "email": "REPLACE-WITH-YOUR-EMAIL"
   },
   "homepage": "https://github.com/vgpt3/vgpt-skill",
