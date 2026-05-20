@@ -1,0 +1,926 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>vgpt-skill — Disciplined Vista queries inside Claude</title>
+  <meta name="description" content="A Claude skill that makes the VGPT MCP reliable inside Excel. Install once at claude.ai, works everywhere." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,700;9..144,900&family=Geist:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --paper: #F6F1E8;
+      --paper-deep: #EFE7D6;
+      --ink: #0C1A2B;
+      --ink-soft: #2C3A4B;
+      --rule: #1A2A3D;
+      --accent: #B85C2F;       /* terracotta / hardhat */
+      --accent-deep: #8F4220;
+      --highlight: #DDC07A;    /* amber */
+      --grid: rgba(12, 26, 43, 0.06);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--paper);
+      color: var(--ink);
+      font-family: 'Geist', system-ui, sans-serif;
+      font-weight: 400;
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+      background-image:
+        linear-gradient(to right, var(--grid) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--grid) 1px, transparent 1px);
+      background-size: 64px 64px;
+      background-position: -1px -1px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 40px;
+    }
+
+    /* ===== HEADER ===== */
+    header {
+      padding: 32px 0;
+      border-bottom: 1px solid var(--rule);
+    }
+    .header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 24px;
+    }
+    .logo {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 14px;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      color: var(--ink);
+    }
+    .logo .dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      background: var(--accent);
+      border-radius: 50%;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+    .nav {
+      display: flex;
+      gap: 32px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      letter-spacing: 0.04em;
+    }
+    .nav a {
+      color: var(--ink-soft);
+      text-decoration: none;
+      border-bottom: 1px solid transparent;
+      transition: border-color 0.2s, color 0.2s;
+    }
+    .nav a:hover {
+      color: var(--ink);
+      border-bottom-color: var(--accent);
+    }
+    .version-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--accent);
+    }
+
+    /* ===== HERO ===== */
+    .hero {
+      padding: 100px 0 120px;
+      position: relative;
+    }
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      gap: 80px;
+      align-items: end;
+    }
+    .eyebrow {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 32px;
+    }
+    .eyebrow .sep {
+      display: inline-block;
+      width: 24px;
+      height: 1px;
+      background: var(--accent);
+      vertical-align: middle;
+      margin: 0 12px 4px 0;
+    }
+    h1 {
+      font-family: 'Fraunces', Georgia, serif;
+      font-weight: 400;
+      font-size: clamp(48px, 7vw, 88px);
+      line-height: 0.98;
+      letter-spacing: -0.02em;
+      color: var(--ink);
+      margin-bottom: 32px;
+    }
+    h1 em {
+      font-style: italic;
+      font-weight: 500;
+      color: var(--accent-deep);
+    }
+    .lede {
+      font-family: 'Fraunces', Georgia, serif;
+      font-weight: 400;
+      font-size: 22px;
+      line-height: 1.45;
+      color: var(--ink-soft);
+      max-width: 580px;
+      margin-bottom: 0;
+    }
+
+    /* CTA card */
+    .cta-card {
+      background: var(--ink);
+      color: var(--paper);
+      padding: 36px 32px;
+      position: relative;
+      box-shadow: 12px 12px 0 var(--accent);
+    }
+    .cta-card .cta-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--highlight);
+      margin-bottom: 16px;
+    }
+    .cta-card h3 {
+      font-family: 'Fraunces', serif;
+      font-weight: 500;
+      font-size: 28px;
+      line-height: 1.15;
+      margin-bottom: 20px;
+    }
+    .cta-card p {
+      font-size: 14px;
+      line-height: 1.5;
+      color: rgba(246, 241, 232, 0.7);
+      margin-bottom: 24px;
+    }
+    .btn-download {
+      display: block;
+      background: var(--accent);
+      color: var(--paper);
+      padding: 18px 24px;
+      text-decoration: none;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 14px;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      text-align: center;
+      transition: background 0.2s, transform 0.2s;
+    }
+    .btn-download:hover {
+      background: var(--accent-deep);
+      transform: translateY(-2px);
+    }
+    .btn-download .arrow {
+      display: inline-block;
+      margin-left: 8px;
+      transition: transform 0.2s;
+    }
+    .btn-download:hover .arrow {
+      transform: translateX(4px);
+    }
+    .cta-meta {
+      margin-top: 14px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: rgba(246, 241, 232, 0.5);
+      text-align: center;
+      letter-spacing: 0.04em;
+    }
+
+    /* ===== TECHNICAL ANNOTATIONS ===== */
+    .annotation {
+      position: absolute;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--ink-soft);
+      letter-spacing: 0.04em;
+    }
+    .annotation::before {
+      content: '';
+      display: inline-block;
+      width: 20px;
+      height: 1px;
+      background: var(--ink-soft);
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+
+    /* ===== PROBLEM SECTION ===== */
+    .problem {
+      padding: 100px 0;
+      border-top: 1px solid var(--rule);
+      background: var(--paper-deep);
+      background-image:
+        linear-gradient(to right, var(--grid) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--grid) 1px, transparent 1px);
+      background-size: 64px 64px;
+    }
+    .section-title {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 24px;
+    }
+    .section-title .num {
+      color: var(--ink);
+      margin-right: 16px;
+    }
+    .section-heading {
+      font-family: 'Fraunces', serif;
+      font-weight: 400;
+      font-size: clamp(36px, 5vw, 56px);
+      line-height: 1.05;
+      letter-spacing: -0.02em;
+      margin-bottom: 64px;
+      max-width: 800px;
+    }
+    .section-heading em {
+      font-style: italic;
+      color: var(--accent-deep);
+    }
+    .problem-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 48px;
+    }
+    .problem-item {
+      border-top: 1px solid var(--rule);
+      padding-top: 24px;
+    }
+    .problem-item .num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--accent);
+      margin-bottom: 12px;
+    }
+    .problem-item h4 {
+      font-family: 'Fraunces', serif;
+      font-weight: 500;
+      font-size: 22px;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+    .problem-item p {
+      font-size: 15px;
+      color: var(--ink-soft);
+      line-height: 1.55;
+    }
+
+    /* ===== HOW IT WORKS (mocks) ===== */
+    .how {
+      padding: 100px 0;
+    }
+    .mock-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 32px;
+      margin-top: 48px;
+    }
+    @media (max-width: 900px) {
+      .mock-grid { grid-template-columns: 1fr; }
+    }
+    .mock-step {
+      display: flex;
+      flex-direction: column;
+    }
+    .mock-step-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--ink-soft);
+      margin-bottom: 16px;
+    }
+    .mock-step-label .step-num {
+      display: inline-block;
+      width: 24px;
+      height: 24px;
+      line-height: 22px;
+      text-align: center;
+      border: 1px solid var(--rule);
+      border-radius: 50%;
+      color: var(--accent);
+      margin-right: 12px;
+    }
+    .mock-window {
+      background: white;
+      border: 1px solid var(--rule);
+      box-shadow: 6px 6px 0 var(--ink);
+      padding: 0;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 320px;
+    }
+    .mock-titlebar {
+      background: var(--paper-deep);
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--rule);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .mock-dots {
+      display: flex;
+      gap: 5px;
+    }
+    .mock-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--rule);
+      opacity: 0.4;
+    }
+    .mock-title {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--ink-soft);
+      margin-left: 8px;
+    }
+    .mock-body {
+      padding: 20px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* Mock 1: claude.ai upload */
+    .mock-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 12px;
+      border: 1px solid var(--rule);
+      border-radius: 4px;
+    }
+    .mock-row.highlighted {
+      border-color: var(--accent);
+      background: rgba(184, 92, 47, 0.06);
+    }
+    .mock-row .row-icon {
+      width: 20px;
+      height: 20px;
+      background: var(--ink);
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+    .mock-row.highlighted .row-icon {
+      background: var(--accent);
+    }
+    .mock-row .row-text {
+      font-size: 13px;
+      flex: 1;
+    }
+    .mock-row .row-meta {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--ink-soft);
+    }
+    .mock-row.upload-btn {
+      justify-content: center;
+      background: var(--ink);
+      color: var(--paper);
+      border: 1px dashed var(--ink);
+      cursor: pointer;
+    }
+    .mock-row.upload-btn .row-text {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.04em;
+      text-align: center;
+      flex: 0;
+    }
+    .mock-section-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--ink-soft);
+      margin: 4px 0 0 0;
+    }
+
+    /* Mock 2: Excel sidebar */
+    .chat-msg {
+      padding: 10px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+    .chat-msg.user {
+      background: var(--paper-deep);
+      color: var(--ink);
+      align-self: flex-end;
+      max-width: 85%;
+    }
+    .chat-msg.claude {
+      background: transparent;
+      color: var(--ink);
+      align-self: flex-start;
+      max-width: 95%;
+      border-left: 2px solid var(--accent);
+      padding-left: 12px;
+      border-radius: 0;
+    }
+    .chat-msg .skill-badge {
+      display: inline-block;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--accent);
+      background: rgba(184, 92, 47, 0.1);
+      padding: 2px 6px;
+      border-radius: 2px;
+      margin-bottom: 6px;
+    }
+
+    /* Mock 3: output */
+    .output-finding {
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    .output-finding strong {
+      font-weight: 600;
+    }
+    .tier {
+      display: inline-block;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 0.08em;
+      padding: 2px 6px;
+      border-radius: 2px;
+      font-weight: 500;
+    }
+    .tier.documented { background: #2C5E3D; color: #DDEFD9; }
+    .tier.schema { background: var(--ink-soft); color: var(--paper); }
+    .tier.undoc { background: #8F4220; color: var(--paper); }
+    .output-table {
+      width: 100%;
+      font-size: 10.5px;
+      border-collapse: collapse;
+      margin-top: 4px;
+    }
+    .output-table th, .output-table td {
+      text-align: left;
+      padding: 6px 8px;
+      border-bottom: 1px solid var(--rule);
+    }
+    .output-table th {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--ink-soft);
+      font-weight: 500;
+    }
+    .citation {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--ink-soft);
+      border-top: 1px dashed var(--rule);
+      padding-top: 8px;
+      margin-top: 8px;
+    }
+
+    /* ===== FEATURES ===== */
+    .features {
+      padding: 100px 0;
+      border-top: 1px solid var(--rule);
+      background: var(--ink);
+      color: var(--paper);
+      background-image:
+        linear-gradient(to right, rgba(246, 241, 232, 0.04) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(246, 241, 232, 0.04) 1px, transparent 1px);
+      background-size: 64px 64px;
+    }
+    .features .section-title { color: var(--highlight); }
+    .features .section-title .num { color: var(--paper); }
+    .features .section-heading { color: var(--paper); }
+    .features .section-heading em { color: var(--highlight); }
+
+    .spec-list {
+      list-style: none;
+      max-width: 800px;
+    }
+    .spec-list li {
+      padding: 24px 0;
+      border-bottom: 1px solid rgba(246, 241, 232, 0.12);
+      display: grid;
+      grid-template-columns: 80px 1fr;
+      gap: 32px;
+      align-items: baseline;
+    }
+    .spec-list .spec-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      color: var(--highlight);
+    }
+    .spec-list .spec-content h4 {
+      font-family: 'Fraunces', serif;
+      font-weight: 500;
+      font-size: 22px;
+      margin-bottom: 6px;
+    }
+    .spec-list .spec-content p {
+      font-size: 15px;
+      color: rgba(246, 241, 232, 0.65);
+      line-height: 1.5;
+    }
+    .spec-list .spec-content code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      background: rgba(246, 241, 232, 0.08);
+      padding: 2px 6px;
+      border-radius: 3px;
+      color: var(--highlight);
+    }
+
+    /* ===== INSTALL ===== */
+    .install {
+      padding: 120px 0;
+      text-align: center;
+    }
+    .install .section-heading {
+      max-width: none;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .install-steps {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 48px;
+      max-width: 900px;
+      margin: 0 auto 64px;
+      text-align: left;
+    }
+    @media (max-width: 800px) {
+      .install-steps { grid-template-columns: 1fr; }
+    }
+    .install-step {
+      border-top: 2px solid var(--accent);
+      padding-top: 16px;
+    }
+    .install-step .step-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      color: var(--accent);
+      margin-bottom: 12px;
+    }
+    .install-step h4 {
+      font-family: 'Fraunces', serif;
+      font-weight: 500;
+      font-size: 20px;
+      line-height: 1.25;
+      margin-bottom: 8px;
+    }
+    .install-step p {
+      font-size: 14px;
+      color: var(--ink-soft);
+      line-height: 1.5;
+    }
+    .install-step code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      background: var(--paper-deep);
+      padding: 2px 6px;
+      border-radius: 3px;
+    }
+    .btn-primary {
+      display: inline-block;
+      background: var(--ink);
+      color: var(--paper);
+      padding: 22px 48px;
+      text-decoration: none;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 14px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      box-shadow: 8px 8px 0 var(--accent);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .btn-primary:hover {
+      transform: translate(-2px, -2px);
+      box-shadow: 10px 10px 0 var(--accent);
+    }
+    .install-note {
+      margin-top: 24px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--ink-soft);
+    }
+
+    /* ===== FOOTER ===== */
+    footer {
+      border-top: 1px solid var(--rule);
+      padding: 48px 0;
+    }
+    .footer-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--ink-soft);
+      letter-spacing: 0.04em;
+    }
+    .footer-row a {
+      color: var(--ink);
+      text-decoration: none;
+      border-bottom: 1px solid var(--accent);
+    }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 900px) {
+      .container { padding: 0 24px; }
+      .hero-grid { grid-template-columns: 1fr; gap: 48px; }
+      .problem-grid { grid-template-columns: 1fr; gap: 32px; }
+      .nav { display: none; }
+    }
+
+    /* ===== INTRO ANIMATION ===== */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .hero h1, .lede, .cta-card, .eyebrow {
+      animation: fadeUp 0.8s ease-out both;
+    }
+    .eyebrow { animation-delay: 0.1s; }
+    .hero h1 { animation-delay: 0.2s; }
+    .lede { animation-delay: 0.4s; }
+    .cta-card { animation-delay: 0.6s; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="container">
+    <div class="header-row">
+      <div class="logo"><span class="dot"></span>vgpt-skill</div>
+      <nav class="nav">
+        <a href="#problem">The problem</a>
+        <a href="#how">How it works</a>
+        <a href="#install">Install</a>
+        <a href="https://github.com/vgpt3/vgpt-skill" target="_blank" rel="noopener">GitHub →</a>
+      </nav>
+    </div>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="container">
+    <div class="hero-grid">
+      <div>
+        <div class="eyebrow"><span class="sep"></span>A Claude skill for Viewpoint Vista &nbsp;·&nbsp; <span class="version-tag">v0.3.0</span></div>
+        <h1>Make Claude actually <em>good</em> at Vista&mdash;everywhere you use it.</h1>
+        <p class="lede">vgpt-skill teaches Claude the disciplined protocol for the VGPT MCP: connector bootstrap, evidence-tiered citations, Excel-friendly output. Install once at claude.ai, works in the Excel add-in, web, and desktop.</p>
+      </div>
+
+      <div class="cta-card">
+        <div class="cta-label">→ Get started</div>
+        <h3>Download &amp; upload to claude.ai</h3>
+        <p>Single <code style="background: rgba(246,241,232,0.08); padding: 2px 5px; border-radius: 2px; font-family: 'JetBrains Mono', monospace; font-size: 12px;">.skill</code> file. Account-wide install. Auto-applies in Excel.</p>
+        <a class="btn-download" href="https://github.com/vgpt3/vgpt-skill/releases/latest/download/vgpt-skill.skill">
+          Download vgpt-skill.skill <span class="arrow">→</span>
+        </a>
+        <div class="cta-meta">~14 KB &nbsp;·&nbsp; MIT licensed &nbsp;·&nbsp; <a href="https://github.com/vgpt3/vgpt-skill" target="_blank" rel="noopener" style="color: rgba(246,241,232,0.7); text-decoration: underline;">view source</a></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="problem" id="problem">
+  <div class="container">
+    <div class="section-title"><span class="num">01</span>The problem</div>
+    <h2 class="section-heading">The MCP works. Claude using it well is the <em>hard part.</em></h2>
+
+    <div class="problem-grid">
+      <div class="problem-item">
+        <div class="num">→ Connection</div>
+        <h4>MCP connects unreliably in Excel</h4>
+        <p>Tool discovery is cached and partial at conversation start. Claude often sees fewer than half the available tools.</p>
+      </div>
+      <div class="problem-item">
+        <div class="num">→ Protocol</div>
+        <h4>Tools have strict rules Claude misses</h4>
+        <p>Mandatory ping. Mandatory <code style="font-family: 'JetBrains Mono', monospace; font-size: 13px;">validate_and_fix_sql</code> before <code style="font-family: 'JetBrains Mono', monospace; font-size: 13px;">execute_sql</code>. Module classification on every <code style="font-family: 'JetBrains Mono', monospace; font-size: 13px;">investigate</code>. Easy to skip.</p>
+      </div>
+      <div class="problem-item">
+        <div class="num">→ Output</div>
+        <h4>Responses don't fit the Excel sidebar</h4>
+        <p>Long prose, missing citations, no evidence tiering. Tables that won't paste into cells. Hedging where data doesn't exist.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="how" id="how">
+  <div class="container">
+    <div class="section-title"><span class="num">02</span>How it works</div>
+    <h2 class="section-heading">Three steps from <em>download</em> to disciplined queries.</h2>
+
+    <div class="mock-grid">
+      <div class="mock-step">
+        <div class="mock-step-label"><span class="step-num">1</span>Upload to claude.ai</div>
+        <div class="mock-window">
+          <div class="mock-titlebar">
+            <div class="mock-dots"><div class="mock-dot"></div><div class="mock-dot"></div><div class="mock-dot"></div></div>
+            <div class="mock-title">claude.ai &mdash; Settings &gt; Skills</div>
+          </div>
+          <div class="mock-body">
+            <div class="mock-section-label">Installed</div>
+            <div class="mock-row">
+              <div class="row-icon"></div>
+              <div class="row-text">docx</div>
+              <div class="row-meta">v1.2</div>
+            </div>
+            <div class="mock-row">
+              <div class="row-icon"></div>
+              <div class="row-text">xlsx</div>
+              <div class="row-meta">v1.0</div>
+            </div>
+            <div class="mock-row highlighted">
+              <div class="row-icon"></div>
+              <div class="row-text"><strong>vgpt-skill</strong></div>
+              <div class="row-meta">v0.3.0</div>
+            </div>
+            <div class="mock-row upload-btn">
+              <div class="row-text">+ Upload Skill</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mock-step">
+        <div class="mock-step-label"><span class="step-num">2</span>Open Excel, ask a question</div>
+        <div class="mock-window">
+          <div class="mock-titlebar">
+            <div class="mock-dots"><div class="mock-dot"></div><div class="mock-dot"></div><div class="mock-dot"></div></div>
+            <div class="mock-title">Claude for Excel &mdash; Sidebar</div>
+          </div>
+          <div class="mock-body">
+            <div class="chat-msg user">How is retainage tracked in Vista? Which tables?</div>
+            <div class="chat-msg claude">
+              <span class="skill-badge">⚙ vgpt-skill active</span>
+              <em>Bootstrapping VGPT MCP…</em><br>
+              <em>Ping ok &mdash; corpus 2026-04-25</em><br>
+              <em>Searching guides…</em><br>
+              <em>Investigating across AP, AR, JC, SL…</em>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mock-step">
+        <div class="mock-step-label"><span class="step-num">3</span>Get a clean, cited answer</div>
+        <div class="mock-window">
+          <div class="mock-titlebar">
+            <div class="mock-dots"><div class="mock-dot"></div><div class="mock-dot"></div><div class="mock-dot"></div></div>
+            <div class="mock-title">Response</div>
+          </div>
+          <div class="mock-body">
+            <div class="output-finding">
+              <span class="tier documented">DOCUMENTED</span>
+              <strong>Retainage spans 4 modules</strong>: AP, AR, JB, JC. Each has its own Release Retainage form.
+            </div>
+            <table class="output-table">
+              <thead><tr><th>Table</th><th>Module</th><th>Field</th></tr></thead>
+              <tbody>
+                <tr><td>APTD</td><td>AP</td><td>Status</td></tr>
+                <tr><td>APTL</td><td>AP</td><td>GLCo, GLAcct</td></tr>
+                <tr><td>ARTL</td><td>AR</td><td>Retainage, RetgPct</td></tr>
+              </tbody>
+            </table>
+            <div class="output-finding">
+              <span class="tier schema">SCHEMA</span>
+              APTD is the payment schedule, <em>not</em> cost distribution.
+            </div>
+            <div class="citation">Sources: KB 000047229, 000065478, 000121372 · 5 Crystal Reports · confidence=HIGH</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="features" id="features">
+  <div class="container">
+    <div class="section-title"><span class="num">03</span>What's in the protocol</div>
+    <h2 class="section-heading">A skill that knows what <em>good</em> looks like.</h2>
+
+    <ol class="spec-list">
+      <li>
+        <div class="spec-num">/ 01</div>
+        <div class="spec-content">
+          <h4>Bootstrap before answering</h4>
+          <p>Multiple varied <code>tool_search</code> queries warm the VGPT MCP connector silently before any work begins. Caps at 3 attempts—no infinite loops.</p>
+        </div>
+      </li>
+      <li>
+        <div class="spec-num">/ 02</div>
+        <div class="spec-content">
+          <h4>Enforce the documented MCP protocol</h4>
+          <p><code>ping</code> mandatory. <code>search_guides</code> before <code>investigate</code>. <code>modules</code> and <code>concepts</code> classified on every call. SQL through <code>validate_and_fix_sql</code> before <code>execute_sql</code>, always.</p>
+        </div>
+      </li>
+      <li>
+        <div class="spec-num">/ 03</div>
+        <div class="spec-content">
+          <h4>Evidence tiers on every claim</h4>
+          <p>Each statement labeled <code>[DOCUMENTED]</code>, <code>[SCHEMA]</code>, or <code>[NOT-DOCUMENTED]</code>. Hedging words banned. KB articles cited by title and number.</p>
+        </div>
+      </li>
+      <li>
+        <div class="spec-num">/ 04</div>
+        <div class="spec-content">
+          <h4>Triage the 20+ response_guidelines</h4>
+          <p>Classifies the question type (documentation / reporting / reconciliation / security) and applies only the relevant subset. No bloated answers stuffed with sections that don't apply.</p>
+        </div>
+      </li>
+      <li>
+        <div class="spec-num">/ 05</div>
+        <div class="spec-content">
+          <h4>Format for the spreadsheet sidebar</h4>
+          <p>Lead with the answer. Clean markdown tables with no merged cells. SQL in fenced blocks. Compact citations at the end. No long prose.</p>
+        </div>
+      </li>
+      <li>
+        <div class="spec-num">/ 06</div>
+        <div class="spec-content">
+          <h4>Handle known quirks</h4>
+          <p>De-duplicates repeated entries in <code>intelligence_findings</code>. Falls back to <code>behavioral_warnings</code> when <code>business_purpose</code> is empty. Distrusts <code>tables_used</code> in favor of the actual SQL <code>FROM</code> clause.</p>
+        </div>
+      </li>
+    </ol>
+  </div>
+</section>
+
+<section class="install" id="install">
+  <div class="container">
+    <div class="section-title" style="text-align: left;"><span class="num">04</span>Install</div>
+    <h2 class="section-heading" style="text-align: left;">Three clicks. Works <em>everywhere.</em></h2>
+
+    <div class="install-steps">
+      <div class="install-step">
+        <div class="step-label">Step 01</div>
+        <h4>Download the .skill file</h4>
+        <p>Single file, ~14 KB. Click the download button below.</p>
+      </div>
+      <div class="install-step">
+        <div class="step-label">Step 02</div>
+        <h4>Open claude.ai → Settings → Capabilities → Skills</h4>
+        <p>Click <code>+ Upload Skill</code> and select the downloaded file.</p>
+      </div>
+      <div class="install-step">
+        <div class="step-label">Step 03</div>
+        <h4>Use Excel as usual</h4>
+        <p>The skill is now active in Excel, web, desktop, and mobile. No separate Excel install needed.</p>
+      </div>
+    </div>
+
+    <a class="btn-primary" href="https://github.com/vgpt3/vgpt-skill/releases/latest/download/vgpt-skill.skill">
+      Download vgpt-skill.skill →
+    </a>
+    <div class="install-note">Make sure your VGPT MCP connector is also configured in Settings → Connectors</div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <div class="footer-row">
+      <div>vgpt-skill &mdash; MIT licensed &mdash; v0.3.0</div>
+      <div><a href="https://github.com/vgpt3/vgpt-skill" target="_blank" rel="noopener">GitHub repository →</a></div>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

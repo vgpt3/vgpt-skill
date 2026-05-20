@@ -1,0 +1,20 @@
+{
+  "name": "vgpt-skill-marketplace",
+  "owner": {
+    "name": "Aaron Yu",
+    "email": "REPLACE-WITH-YOUR-EMAIL"
+  },
+  "plugins": [
+    {
+      "name": "vgpt-skill",
+      "source": {
+        "source": "github",
+        "repo": "vgpt3/vgpt-skill"
+      },
+      "version": "0.3.0",
+      "description": "Disciplined use of the VGPT MCP server for Viewpoint Vista construction ERP queries. Handles connector bootstrap, evidence-tiered citations, and Excel-friendly output formatting.",
+      "category": "data-integration",
+      "keywords": ["viewpoint", "vista", "construction", "erp", "vgpt", "mcp", "excel", "sql"]
+    }
+  ]
+}

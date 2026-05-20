@@ -1,0 +1,35 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    name: Package and publish .skill
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build .skill file
+        run: |
+          chmod +x scripts/package.sh
+          ./scripts/package.sh
+
+      - name: Verify SKILL.md is valid
+        run: |
+          # Basic validation: SKILL.md must exist with YAML frontmatter starting with ---
+          test -f skills/vgpt/SKILL.md
+          head -1 skills/vgpt/SKILL.md | grep -q '^---$'
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/vgpt-skill.skill
+          generate_release_notes: true
+          fail_on_unmatched_files: true
