@@ -64,6 +64,12 @@ If your org routes Claude for Excel through an LLM gateway (LiteLLM, Portkey, et
 - Excel users: re-download the latest `.skill` to update.
 - Claude Code users: enable auto-update on the marketplace, or `/plugin update vgpt-skill`.
 
+### Releasing a new version
+
+1. Bump version in `CHANGELOG.md` and any version refs.
+2. `git tag v0.3.0 && git push --tags`
+3. The Release workflow packages `vgpt-skill.skill` and publishes a GitHub Release.
+
 ## Project landing page (GitHub Pages)
 
 This repo includes a single-file landing page at `docs/index.html` designed to be the shareable URL you give to users. It has the one-click download button, a brief explanation of the problem, and three-step install instructions.
